@@ -1,3 +1,10 @@
+const fetch = require("cross-fetch");
+
+// Provide global fetch / Headers / Request / Response for graph client
+global.fetch = fetch;
+global.Headers = fetch.Headers;
+global.Request = fetch.Request;
+global.Response = fetch.Response;
 const express = require("express");
 const { Client } = require("@microsoft/microsoft-graph-client");
 const { ClientSecretCredential } = require("@azure/identity");
