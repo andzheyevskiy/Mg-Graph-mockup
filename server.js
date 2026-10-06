@@ -93,7 +93,7 @@ app.post("/computers", async (req, res) => { await handleGraphRequests(req, res,
 app.post("/intuneDevices", async (req, res) => { await handleGraphRequests(req, res, "/deviceManagement/managedDevices") });
 app.post("/DMDE", async (req, res) => { await handleGraphRequests(req, res, "https://graph.microsoft.com/beta/deviceManagement/configurationPolicies", "startswith(name,'DMDE')") });
 app.post("/DAC", async (req, res) => { await handleGraphRequests(req, res, "/identity/conditionalAccess/policies", "startswith(displayName,'DAC')") });
-app.post("/test", async (req, res) => { await obtenerClaveBitLocker(req, res)});
+app.post("/Bitlocker", async (req, res) => { await obtenerClaveBitLocker(req, res)});
 
 
 // --- start server ---
