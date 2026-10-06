@@ -84,6 +84,57 @@ async function obtenerClaveBitLocker(req, res) {
   }
 }
 
+async function getDMDE(req, res) {
+  const { tenantId, clientId, clientSecret } = req.body;
+
+  if (!tenantId || !clientId || !clientSecret) {
+    return res.status(400).json({
+      error: "tenantId, clientId, clientSecret required"
+    });
+  }
+
+  try {
+    const graph = createGraphClient(tenantId, clientId, clientSecret);
+
+    const policies = await graph
+      .api("https://graph.microsoft.com/beta/deviceManagement/configurationPolicies")
+      .filter("startswith(name,'DMDE')")
+      .get();
+
+    const dmdePolicies = policies.value;
+
+    if (!dmdePolicies.length) {
+      return res.json({ error: "No DMDE policies found" });
+    }
+
+    const results = [];
+
+    for (const policy of dmdePolicies) {
+      const policyId = policy.id;
+
+      const status = await graph
+        .api(`https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations/${policyId}/deviceStatuses`)
+        .get();
+
+      results.push({
+        policyName: policy.name,
+        policyId,
+        count: status.value.length,
+        results: status.value
+      });
+    }
+
+    res.json({
+      totalPolicies: results.length,
+      policies: results
+    });
+
+  } catch (err) {
+    console.error("DMDE report error:", err);
+    res.status(500).json({ error: err.message || "Unknown error" });
+  }
+}
+
 
 // Solicitudes
 app.post("/mfa", async (req, res) => { await handleGraphRequests(req, res, "/reports/authenticationMethods/userRegistrationDetails") });
@@ -91,7 +142,7 @@ app.post("/users", async (req, res) => { await handleGraphRequests(req, res, "/u
 app.post("/externalusers", async (req, res) => { await handleGraphRequests(req, res, "/users", "userType eq 'Guest'") });
 app.post("/computers", async (req, res) => { await handleGraphRequests(req, res, "/devices") });
 app.post("/intuneDevices", async (req, res) => { await handleGraphRequests(req, res, "/deviceManagement/managedDevices") });
-app.post("/DMDE", async (req, res) => { await handleGraphRequests(req, res, "https://graph.microsoft.com/beta/deviceManagement/configurationPolicies", "startswith(name,'DMDE')") });
+app.post("/DMDE", async (req, res) => { await getDMDE(req, res) });
 app.post("/DAC", async (req, res) => { await handleGraphRequests(req, res, "/identity/conditionalAccess/policies", "startswith(displayName,'DAC')") });
 app.post("/Bitlocker", async (req, res) => { await obtenerClaveBitLocker(req, res)});
 
