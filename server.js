@@ -39,9 +39,7 @@ function createGraphClient(tenantId, clientId, clientSecret) {
   return client;
 }
 
-
-// --- POST /mfa ---
-app.post("/mfa", async (req, res) => {
+async function handleGraphRequests(req, res, route, filter) {
   const { tenantId, clientId, clientSecret } = req.body;
 
   if (!tenantId || !clientId || !clientSecret) {
@@ -50,106 +48,25 @@ app.post("/mfa", async (req, res) => {
 
   try {
     const graph = createGraphClient(tenantId, clientId, clientSecret);
-    const result = await graph.api("/reports/authenticationMethods/userRegistrationDetails").get();
+    let request = graph.api(route)
+    if (filter) {
+      request = request.filter(filter);
+    }
+    const result = await request.get();
     res.json(result.value || result);
   } catch (err) {
-    console.error("Error /users:", err);
+    console.error(`Error: ${route}`, err);
     res.status(500).json({ error: err.message || "Unknown error" });
   }
-});
+}
 
-// --- POST /users ---
-app.post("/users", async (req, res) => {
-  const { tenantId, clientId, clientSecret } = req.body;
+// Solicitudes
+app.post("/mfa", async (req, res) => { await handleGraphRequests(req, res, "/reports/authenticationMethods/userRegistrationDetails") });
+app.post("/users", async (req, res) => { await handleGraphRequests(req, res, "/users", "userType eq 'Member'") });
+app.post("/externalusers", async (req, res) => { await handleGraphRequests(req, res, "/users", "userType eq 'Guest'") });
+app.post("/computers", async (req, res) => { await handleGraphRequests(req, res, "/devices") });
+app.post("/intuneDevices", async (req, res) => { await handleGraphRequests(req, res, "/deviceManagement/managedDevices") });
 
-  if (!tenantId || !clientId || !clientSecret) {
-    return res.status(400).json({ error: "tenantId, clientId, clientSecret required" });
-  }
-
-  try {
-    const graph = createGraphClient(tenantId, clientId, clientSecret);
-    const result = await graph.api("/users").filter("userType eq 'Member'").get();
-    res.json(result.value || result);
-  } catch (err) {
-    console.error("Error /users:", err);
-    res.status(500).json({ error: err.message || "Unknown error" });
-  }
-});
-
-// --- POST /externalusers ---
-app.post("/externalusers", async (req, res) => {
-  const { tenantId, clientId, clientSecret } = req.body;
-
-  if (!tenantId || !clientId || !clientSecret) {
-    return res.status(400).json({ error: "tenantId, clientId, clientSecret required" });
-  }
-
-  try {
-    const graph = createGraphClient(tenantId, clientId, clientSecret);
-    const result = await graph.api("/users").filter("userType eq 'Guest'").get();
-    res.json(result.value || result);
-  } catch (err) {
-    console.error("Error /users:", err);
-    res.status(500).json({ error: err.message || "Unknown error" });
-  }
-});
-
-// --- POST /computers (devices) ---
-app.post("/computers", async (req, res) => {
-  const { tenantId, clientId, clientSecret } = req.body;
-
-  if (!tenantId || !clientId || !clientSecret) {
-    return res.status(400).json({ error: "tenantId, clientId, clientSecret required" });
-  }
-
-  try {
-    const graph = createGraphClient(tenantId, clientId, clientSecret);
-    const result = await graph.api("/devices").get();
-    res.json(result.value || result);
-  } catch (err) {
-    console.error("Error /computers:", err);
-    res.status(500).json({ error: err.message || "Unknown error" });
-  }
-});
-
-
-// --- POST /intuneDevices ---
-app.post("/intuneDevices", async (req, res) => {
-  const { tenantId, clientId, clientSecret } = req.body;
-
-  if (!tenantId || !clientId || !clientSecret) {
-    return res.status(400).json({ error: "tenantId, clientId, clientSecret required" });
-  }
-
-  try {
-    const graph = createGraphClient(tenantId, clientId, clientSecret);
-    const result = await graph.api("/deviceManagement/managedDevices").get();
-    res.json(result.value || result);
-  } catch (err) {
-    console.error("Error /intuneDevices:", err);
-    res.status(500).json({ error: err.message || "Unknown error" });
-  }
-});
-
-// --- POST /DMDE ---
-app.post("/DMDE", async (req, res) => {
-  const { tenantId, clientId, clientSecret } = req.body;
-
-  if (!tenantId || !clientId || !clientSecret) {
-    return res.status(400).json({ error: "tenantId, clientId, clientSecret required" });
-  }
-
-  try {
-    const graph = createGraphClient(tenantId, clientId, clientSecret);
-    const result = await graph.api("/deviceManagement/deviceConfigurations")
-    .filter("startswith(displayName,'DMDE')")
-    .get();
-    res.json(result.value || result);
-  } catch (err) {
-    console.error("Error /DMDE:", err);
-    res.status(500).json({ error: err.message || "Unknown error" });
-  }
-});
 
 // --- start server ---
 const PORT = 3000;
