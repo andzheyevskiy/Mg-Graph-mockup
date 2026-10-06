@@ -59,6 +59,31 @@ async function handleGraphRequests(req, res, route, filter) {
     res.status(500).json({ error: err.message || "Unknown error" });
   }
 }
+async function obtenerClaveBitLocker(req, res) {
+  const { tenantId, clientId, clientSecret } = req.body;
+
+  if (!tenantId || !clientId || !clientSecret) {
+    return res.status(400).json({ error: "tenantId, clientId, clientSecret required" });
+  }
+
+  try {
+    const graph = createGraphClient(tenantId, clientId, clientSecret);
+
+    const list = await graph.api("https://graph.microsoft.com/beta/informationProtection/bitlocker/recoveryKeys").get();
+
+    for (const entry of list.value) {
+      const url = `https://graph.microsoft.com/beta/informationProtection/bitlocker/recoveryKeys/${entry.id}?$select=key`;
+      const keyResult = await graph.api(url).get();
+      entry.recoveryKey = keyResult.key; 
+    }
+    res.json(list.value);
+
+  } catch (err) {
+    console.error("BitLocker error:", err);
+    res.status(500).json({ error: err.message || "Unknown error" });
+  }
+}
+
 
 // Solicitudes
 app.post("/mfa", async (req, res) => { await handleGraphRequests(req, res, "/reports/authenticationMethods/userRegistrationDetails") });
@@ -66,6 +91,9 @@ app.post("/users", async (req, res) => { await handleGraphRequests(req, res, "/u
 app.post("/externalusers", async (req, res) => { await handleGraphRequests(req, res, "/users", "userType eq 'Guest'") });
 app.post("/computers", async (req, res) => { await handleGraphRequests(req, res, "/devices") });
 app.post("/intuneDevices", async (req, res) => { await handleGraphRequests(req, res, "/deviceManagement/managedDevices") });
+app.post("/DMDE", async (req, res) => { await handleGraphRequests(req, res, "https://graph.microsoft.com/beta/deviceManagement/configurationPolicies", "startswith(name,'DMDE')") });
+app.post("/DAC", async (req, res) => { await handleGraphRequests(req, res, "/identity/conditionalAccess/policies", "startswith(displayName,'DAC')") });
+app.post("/test", async (req, res) => { await obtenerClaveBitLocker(req, res)});
 
 
 // --- start server ---
