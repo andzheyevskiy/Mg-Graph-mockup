@@ -23,7 +23,7 @@ async function getConditionalAccessPolicies({ tenantId, clientId, clientSecret }
 
         // includeUsers
         for (const u of users.includeUsers || []) {
-            if (u !== "all" && u !== "externalUsers") userIds.add(u);
+            if (u !== "All" && u !== "externalUsers") userIds.add(u);
         }
 
         // includeGroups
