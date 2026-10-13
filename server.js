@@ -7,6 +7,7 @@ global.Request = fetch.Request;
 global.Response = fetch.Response;
 const express = require("express");
 const app = express();
+app.disable("x-powered-by");
 app.use(express.json());
 
 //Imports REST API
