@@ -52,3 +52,7 @@ Manda información de BitLocker de todos los dispositivos.
 `/BitLocker?deviceId=<DeviceId>`
 
 Manda informacion de BitLocker del dispositivo con el id indicado.
+
+`/licences`
+
+Manda informacion de las licencias del tennant y los usuarios asignados.

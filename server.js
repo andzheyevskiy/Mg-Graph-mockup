@@ -18,6 +18,7 @@ const sendGroups = require("./restAPI/sendGroups")
 const sendConditionalAccessPolicies = require("./restAPI/sendConditionalAccessPolicies")
 const sendDevicesFull = require("./restAPI/sendDevicesFull")
 const sendDevices = require("./restAPI/sendDevices")
+const sendLicences = require("./restAPI/sendLicences")
 
 // REST API
 app.post("/users", sendUsers);
@@ -28,6 +29,7 @@ app.post("/groups", sendGroups);
 app.post("/DAC", sendConditionalAccessPolicies);
 app.post("/devicesFull", sendDevicesFull);
 app.post("/devices", sendDevices);
+app.post("/licences", sendLicences);
 
 
 // --- start server ---
