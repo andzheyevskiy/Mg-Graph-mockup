@@ -3,9 +3,6 @@ const createGraphClient = require("./_createGraphClient");
 async function getDevicesFull({ tenantId, clientId, clientSecret }) {
     const graph = createGraphClient(tenantId, clientId, clientSecret);
 
-    // ---------------------------------------------------------
-    // 1. GET ALL ENTRA / INTUNE DEVICES
-    // ---------------------------------------------------------
     const devicesResp = await graph
         .api("https://graph.microsoft.com/v1.0/deviceManagement/managedDevices")
         .select("id,deviceName,azureADDeviceId,userPrincipalName,operatingSystem,complianceState,managementAgent")
@@ -21,7 +18,6 @@ async function getDevicesFull({ tenantId, clientId, clientSecret }) {
             user: d.userPrincipalName,
             os: d.operatingSystem,
             managementType: d.managementAgent,
-            complianceState: d.complianceState,
             azureADDeviceId: d.azureADDeviceId,
 
             compliancePolicies: [],
@@ -29,40 +25,6 @@ async function getDevicesFull({ tenantId, clientId, clientSecret }) {
         };
     }
 
-    // ---------------------------------------------------------
-    // 2. GET COMPLIANCE POLICIES
-    // ---------------------------------------------------------
-    const compPoliciesResp = await graph
-        .api("https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies")
-        .get();
-
-    const compPolicies = compPoliciesResp.value || [];
-
-    // ---------------------------------------------------------
-    // 3. GET COMPLIANCE STATUS PER POLICY
-    // ---------------------------------------------------------
-    for (const policy of compPolicies) {
-        const statusResp = await graph
-            .api(`https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies/${policy.id}/deviceStatuses`)
-            .get();
-
-        const statuses = statusResp.value || [];
-
-        for (const s of statuses) {
-            if (deviceMap[s.deviceId]) {
-                deviceMap[s.deviceId].compliancePolicies.push({
-                    policyId: policy.id,
-                    policyName: policy.displayName,
-                    status: s.status,
-                    lastReported: s.lastReportedDateTime
-                });
-            }
-        }
-    }
-
-    // ---------------------------------------------------------
-    // 4. GET DMDE AV DIRECTIVES (CONFIGURATION POLICIES)
-    // ---------------------------------------------------------
     const dmdeResp = await graph
         .api("https://graph.microsoft.com/beta/deviceManagement/configurationPolicies")
         .filter("startswith(name,'DMDE')")
@@ -70,9 +32,6 @@ async function getDevicesFull({ tenantId, clientId, clientSecret }) {
 
     const dmdePolicies = dmdeResp.value || [];
 
-    // ---------------------------------------------------------
-    // 5. GET DMDE STATUS PER POLICY
-    // ---------------------------------------------------------
     for (const policy of dmdePolicies) {
         const statusResp = await graph
             .api(`https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations/${policy.id}/deviceStatuses`)
@@ -81,21 +40,27 @@ async function getDevicesFull({ tenantId, clientId, clientSecret }) {
         const statuses = statusResp.value || [];
 
         for (const s of statuses) {
-            if (deviceMap[s.deviceId]) {
-                deviceMap[s.deviceId].dmdePolicies.push({
-                    policyId: policy.id,
-                    policyName: policy.name,
-                    platform: policy.platforms,
-                    status: s.status,
-                    lastReported: s.lastReportedDateTime
-                });
+
+            // Buscar el deviceId REAL dentro del ID DMDE
+            const dmdeId = s.id;
+
+            // Recorrer todos los dispositivos y ver si el ID DMDE contiene su deviceId
+            for (const deviceId of Object.keys(deviceMap)) {
+
+                if (dmdeId.includes(deviceId)) {
+                    deviceMap[deviceId].dmdePolicies.push({
+                        policyId: policy.id,
+                        policyName: policy.name,
+                        platform: policy.platforms,
+                        status: s.status,
+                        lastReported: s.lastReportedDateTime
+                    });
+                }
+
             }
         }
     }
 
-    // ---------------------------------------------------------
-    // 6. RETURN MERGED DEVICE OBJECTS
-    // ---------------------------------------------------------
     return Object.values(deviceMap);
 }
 
